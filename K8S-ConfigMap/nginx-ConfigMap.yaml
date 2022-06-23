@@ -1,0 +1,77 @@
+# Config Map for nginx
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-conf
+data:
+  nginx.conf: |
+    user nginx;
+    worker_processes  1;
+    events {
+      worker_connections  10240;
+    }
+    http {
+      server {
+          listen       80;
+          server_name  localhost;
+          location / {
+            root   /usr/share/nginx/html;
+            index  index.html index.htm;
+        }
+      }
+    }
+
+---
+# Deployment definition
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: candoweb
+  labels: 
+    app: candoweb
+
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: candoweb
+  template:
+    metadata:
+      labels: 
+        app: candoweb
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports: 
+          - name: conport
+            containerPort: 80
+        volumeMounts:
+          - name: nginx-conf
+            mountPath: /etc/nginx/nginx.conf
+            subPath: nginx.conf
+            readOnly: true
+
+      volumes:
+        - name: nginx-conf
+          configMap:
+            name: nginx-conf
+            items:
+            - key: nginx.conf
+              path: nginx.conf
+---
+
+# Service for our deployment
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-s
+spec:
+  type: NodePort
+  selector:
+    app: candoweb
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30055
+      # By default and for convenience, the Kubernetes control plane will allocate a port from a range (default: 30000-32767)
