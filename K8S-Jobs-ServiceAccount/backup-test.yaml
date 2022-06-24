@@ -1,0 +1,59 @@
+# Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backup-task
+automountServiceAccountToken: false
+---
+# Role for accessing pods
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: backup-task-Role
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["pods"]
+  verbs: ["get", "watch", "list", "cp"]
+---
+# Role Binding to Service Account
+apiVersion: rbac.authorization.k8s.io/v1
+
+kind: RoleBinding
+metadata:
+  name: backup-task
+  namespace: default
+subjects:
+# You can specify more than one "subject"
+- kind: ServiceAccount
+  name: backup-task # "name" is case sensitive
+  apiGroup: ""
+roleRef:
+  # "roleRef" specifies the binding to a Role / ClusterRole
+  kind: Role #this must be Role or ClusterRole
+  name: backup-task-Role # this must match the name of the Role or ClusterRole you wish to bind to
+  apiGroup: rbac.authorization.k8s.io
+
+
+---
+# Kubectl pod to do the backup task
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: hello
+spec:
+  schedule: "*/5 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          automountServiceAccountToken: false
+          containers:
+          - name: backup-task
+            image: bitnami/kubectl
+            command:                                                     
+            - kubectl cp mysql-0:/etc/resolv.conf /tmp/tt
+          restartPolicy: OnFailure
+      
+
