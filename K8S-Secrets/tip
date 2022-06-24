@@ -1,0 +1,1 @@
+Just Use base64 encoding of the secret ( cat nginx.crt | base64 -w0 ) 
