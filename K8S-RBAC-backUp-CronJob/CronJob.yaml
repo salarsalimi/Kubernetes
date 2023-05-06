@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: BackupJob
+spec:
+  schedule: "*/2 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccount: backup-sa
+          automountServiceAccountToken: true
+          containers:
+          - name: BackupJob
+            image: busybox
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/sh
+            - -c
+            - kubectl cp web-0:/etc/ /tmp/ttss/
+          restartPolicy: OnFailure
+      
